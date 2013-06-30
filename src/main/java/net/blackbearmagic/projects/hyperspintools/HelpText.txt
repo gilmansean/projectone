@@ -35,4 +35,3 @@ all your needs.
         - matches all files that begin with "SomeText"
     SomeText.*.txt  
         - matches all files that begin with "SomeText" and have a .txt extension
-

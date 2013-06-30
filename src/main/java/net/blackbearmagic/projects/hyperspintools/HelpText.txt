@@ -1,0 +1,38 @@
+This tool will read a source directory for files that match a given filter.
+One of three actions is then performed on that list of files.
+
+Directory Create Only:
+    A new directory will be created in the destination directory with the
+    name of the file, the file extension is stripped off.  For example
+    for file "test.text" a directory will be created with the name "test".
+
+File Move Only:
+    The file found will be moved to it's matching named directory.
+
+Create Directory and Move File:
+    Both of the above actions are performed.
+
+The "Choose Source" button will open a window where you will be able to choose 
+a source directory used for looking for files.  If a directory is chosen all 
+files will be scanned for name matches to the filter.  If a single file is 
+chosen then that single file will be used as the filter and only that one file
+will be used in the action list.
+
+The "Choose Destination" button will open a window where you will be able to
+choose a destination directory for the actions.  if a directory is chosen
+that will be used as the base for the destination directory creates.  If a file
+is chosen the files parent directory will be used as the destination.
+
+The file filter is a text box where you can enter in text to match file names.
+The filter is a Regular Expression string.  If you are unfamiliar with 
+Regular Expressions here are some simple examples that should meet almost 
+all your needs.
+    .*              
+        - matches anything and everything
+    .*.txt          
+        - matches all files with a ".txt" extension
+    SomeText.*      
+        - matches all files that begin with "SomeText"
+    SomeText.*.txt  
+        - matches all files that begin with "SomeText" and have a .txt extension
+

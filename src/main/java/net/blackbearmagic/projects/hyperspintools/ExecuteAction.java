@@ -27,7 +27,7 @@ public class ExecuteAction {
 				.getProperties().get("source.directory"));
 		String filter = SystemProperties.getProperties().getProperty(
 				"file.filter");
-		String[] fileList = sourceDirectory.list(new MyFilter(filter));
+		String[] fileList = sourceDirectory.list(new FileAndNameFilter(filter));
 		for (String fileName : fileList) {
 			File directory = null;
 			int lastPeriodPos = fileName.lastIndexOf('.');

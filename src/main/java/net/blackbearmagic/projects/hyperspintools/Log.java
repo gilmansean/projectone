@@ -4,15 +4,22 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class Log {
 	private static LogLevel defaultLogLevel = LogLevel.DEBUG;
-	private static Integer logRetention = new Integer(5);
+	@SuppressWarnings("unused")
+	private static Long logRetentionSize = new Long(5000000);
 	private static String logFileName = "hstool.log";
 	private static File logFile;
 	private static Boolean printToSystemOut = new Boolean(false);
 
 	private Log() {
+
+	}
+
+	static {
 		try {
 			Log.defaultLogLevel = LogLevel.valueOf(SystemProperties
 					.getProperties().getProperty("log.default.level"));
@@ -22,29 +29,27 @@ public class Log {
 		Log.printToSystemOut = Boolean.parseBoolean(SystemProperties
 				.getProperties().getProperty("log.print.to.system.out"));
 		try {
-			Log.logRetention = Integer.parseInt(SystemProperties
-					.getProperties().getProperty("log.file.retention.number"));
-		} catch (NumberFormatException e) {
-			Log.logRetention = new Integer(5);
+			Integer retentionSize = Integer.parseInt(SystemProperties
+					.getProperties().getProperty("log.file.retention.MBsize"));
+			Log.logRetentionSize = (long) (retentionSize * 1000000);
+		} catch (Exception e) {
+			Log.logRetentionSize = new Long(5000000);
 		}
 		Log.logFileName = SystemProperties.getProperties().getProperty(
 				"log.file");
-		Log.logFile = new File(Log.logFileName + Thread.currentThread().getId());
-		this.trimOldLogFiles();
+		File presentDirecoty = new File(Log.class.getProtectionDomain()
+				.getCodeSource().getLocation().getPath()).getParentFile();
+		Log.logFile = new File(presentDirecoty.getAbsolutePath(),
+				Log.logFileName);
+		Log.trimOldLogFiles();
+		SystemProperties.setReadyToLog();
 	}
 
-	public void trimOldLogFiles() {
+	public static void trimOldLogFiles() {
 		try {
-			File sourceDirectory = Log.logFile.getParentFile();
-			String[] fileList = sourceDirectory.list(new MyFilter(
-					Log.logFileName));
-			if ((fileList != null) && (fileList.length > Log.logRetention)) {
-				int fileTrims = fileList.length - Log.logRetention;
-				while (fileTrims < fileList.length) {
-					File deleteMe = new File(sourceDirectory,
-							fileList[fileTrims + 1]);
-					deleteMe.delete();
-				}
+
+			if (Log.logFile.exists()) {
+
 			}
 		} catch (Exception e) {
 			if (Log.printToSystemOut) {
@@ -93,7 +98,7 @@ public class Log {
 		try {
 			PrintWriter out = new PrintWriter(new BufferedWriter(
 					new FileWriter(Log.logFile, true)));
-			out.println(text);
+			out.println(Log.getFormattedTime() + text);
 			out.close();
 		} catch (Exception e) {
 			if (Log.printToSystemOut) {
@@ -102,10 +107,18 @@ public class Log {
 		}
 	}
 
+	private static String getFormattedTime() {
+		SimpleDateFormat dateTimeFormat = new SimpleDateFormat(
+				"yyyy-MM-dd HH:mm:ss.SSS");
+		String formattedTime = dateTimeFormat.format(new Date());
+		return "[" + formattedTime + "] ";
+	}
+
 	private static void appendExceptionToLogFile(Exception exception) {
 		try {
 			PrintWriter out = new PrintWriter(new BufferedWriter(
 					new FileWriter(Log.logFile, true)));
+			out.println(Log.getFormattedTime() + "Exception=>");
 			exception.printStackTrace(out);
 			out.close();
 		} catch (Exception e) {

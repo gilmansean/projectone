@@ -3,18 +3,20 @@ package net.blackbearmagic.projects.hyperspintools;
 import java.io.File;
 import java.io.FilenameFilter;
 
-public class MyFilter implements FilenameFilter {
+public class FileAndNameFilter implements FilenameFilter {
 
 	String filter = "";
 
-	public MyFilter(String theFilter) {
+	public FileAndNameFilter(String theFilter) {
 		this.filter = theFilter;
 	}
 
 	public boolean accept(File dir, String name) {
 		boolean matches = false;
 		if (name.matches(this.filter)) {
-			matches = true;
+			if(dir.isDirectory()&&new File(dir,name).isFile()){
+				matches = true;
+			}
 		}
 		return matches;
 	}

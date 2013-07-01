@@ -7,17 +7,29 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.Properties;
 
 public class SystemProperties {
 
 	private static Properties properties;
-	private static String propertyFile = "HyperSpinDirectoryCreate.properties";
+	private static File propertyFile;
+	private static File presentDirecoty;
+	private static boolean readyToLog = false;
 
 	private SystemProperties() {
 
+	}
+
+	static {
+		File me = new File(SystemProperties.class.getProtectionDomain()
+				.getCodeSource().getLocation().getPath());
+		SystemProperties.presentDirecoty = me.getParentFile();
+		String myName = me.getName();
+		int lastPeriodPos = myName.lastIndexOf('.');
+		String propertyFileName = myName.substring(0, lastPeriodPos)
+				+ ".properties";
+		SystemProperties.propertyFile = new File(
+				SystemProperties.presentDirecoty, propertyFileName);
 	}
 
 	public static Properties getProperties() {
@@ -25,19 +37,15 @@ public class SystemProperties {
 	}
 
 	public static void saveProperties() {
-		if (SystemProperties.printToSystemOut()) {
-			System.out.println("Saving properties");
-		}
-		File f = new File(SystemProperties.propertyFile);
+		SystemProperties.logMessage("Saving properties");
 		OutputStream out;
 		try {
-			out = new FileOutputStream(f);
+			out = new FileOutputStream(SystemProperties.propertyFile);
 			SystemProperties.properties.store(out, "Autosaved properties.");
 			out.close();
 		} catch (Exception e) {
-			if (SystemProperties.printToSystemOut()) {
-				e.printStackTrace();
-			}
+			SystemProperties.logMessage(e);
+
 		}
 	}
 
@@ -46,11 +54,13 @@ public class SystemProperties {
 			SystemProperties.properties = new Properties();
 		}
 		if (SystemProperties.properties.getProperty("output.directory") == null) {
-			SystemProperties.properties.put("output.directory", "./");
+			SystemProperties.properties.put("output.directory",
+					SystemProperties.presentDirecoty.getAbsolutePath());
 		}
 
 		if (SystemProperties.properties.getProperty("source.directory") == null) {
-			SystemProperties.properties.put("source.directory", "./");
+			SystemProperties.properties.put("source.directory",
+					SystemProperties.presentDirecoty.getAbsolutePath());
 		}
 		if (SystemProperties.properties.getProperty("file.filter") == null) {
 			SystemProperties.properties.put("file.filter", ".*");
@@ -62,8 +72,8 @@ public class SystemProperties {
 			SystemProperties.properties.put("log.default.level", "INFO");
 		}
 		if (SystemProperties.properties
-				.getProperty("log.file.retention.number") == null) {
-			SystemProperties.properties.put("log.file.retention.number", "5");
+				.getProperty("log.file.retention.MBsize") == null) {
+			SystemProperties.properties.put("log.file.retention.MBsize", "5");
 		}
 		if (SystemProperties.properties.getProperty("log.print.to.system.out") == null) {
 			SystemProperties.properties.put("log.print.to.system.out", "false");
@@ -89,93 +99,55 @@ public class SystemProperties {
 		SystemProperties.properties = new Properties();
 		InputStream in = null;
 		try {
-			URL fileURL = SystemProperties
-					.findFile(SystemProperties.propertyFile);
-			if (fileURL != null) {
-				in = new FileInputStream(
-						new File(SystemProperties.findFile(
-								SystemProperties.propertyFile).toURI())
-								.getAbsolutePath());
-			} else {
-				throw new FileNotFoundException(
-						"Could not load property file: "
-								+ SystemProperties.propertyFile);
-			}
+			in = new FileInputStream(
+					SystemProperties.propertyFile.getAbsolutePath());
 		} catch (Exception e1) {
-			if (SystemProperties.printToSystemOut()) {
-				e1.printStackTrace();
-			}
+			SystemProperties.logMessage(e1);
 		}
 		if (in != null) {
 			try {
 				SystemProperties.properties.load(in);
 			} catch (IOException e) {
-				if (SystemProperties.printToSystemOut()) {
-					e.printStackTrace();
-				}
+				SystemProperties.logMessage(e);
 			}
 			try {
 				in.close();
 			} catch (IOException e) {
-				if (SystemProperties.printToSystemOut()) {
-					e.printStackTrace();
-				}
+				SystemProperties.logMessage(e);
 			}
 		} else {
-			if (SystemProperties.printToSystemOut()) {
-				System.out.println("No property file found, using defaults.");
-			}
+			SystemProperties
+					.logMessage("No property file found, using defaults.");
 		}
 
 		SystemProperties.loadDefaultProperties(false);
 
 	}
 
-	public static URL findFile(String file) {
-		URL pathToFile = null;
-		File theFile = new File(file);
-		try {
-			if (theFile.exists()) {
-				pathToFile = theFile.toURI().toURL();
-			} else {
-				throw new MalformedURLException(
-						"Does not exist, this is not our path");
-			}
-		} catch (MalformedURLException e) {
-			// Exception means there was a problem locating or accessing the
-			// file. Means it does not count as found for us.
-			pathToFile = null;
-		}
-		if (pathToFile == null) {
-			pathToFile = SystemProperties.class.getClassLoader().getResource(
-					file);
-		}
-		if (pathToFile == null) {
-			pathToFile = SystemProperties.class.getClassLoader().getResource(
-					theFile.getName());
-		}
-		if (pathToFile == null) {
-			pathToFile = Thread.currentThread().getContextClassLoader()
-					.getResource(file);
-		}
-		if (pathToFile == null) {
-			pathToFile = Thread.currentThread().getContextClassLoader()
-					.getResource(theFile.getName());
-		}
-		if (pathToFile == null) {
-			if (SystemProperties.printToSystemOut()) {
-				System.out.println("Could not find the file: " + file);
-			}
-
-		}
-
-		return pathToFile;
-	}
-
 	private static boolean printToSystemOut() {
 		return Boolean.getBoolean("logSystemPropertyMessages")
 				|| Boolean.parseBoolean(SystemProperties.properties
 						.getProperty("log.print.to.system.out"));
+	}
+
+	private static void logMessage(String message) {
+		if (SystemProperties.readyToLog) {
+			Log.logMessage(message);
+		} else if (SystemProperties.printToSystemOut()) {
+			System.out.println(message);
+		}
+	}
+
+	private static void logMessage(Exception exception) {
+		if (SystemProperties.readyToLog) {
+			Log.logMessage(exception);
+		} else if (SystemProperties.printToSystemOut()) {
+			exception.printStackTrace();
+		}
+	}
+
+	public static void setReadyToLog() {
+		SystemProperties.readyToLog = true;
 	}
 
 }
